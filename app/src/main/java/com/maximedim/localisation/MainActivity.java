@@ -1,23 +1,38 @@
 package com.maximedim.localisation;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.nfc.Tag;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
+    public final String ACTION_LOCATION = "com.maximedim.location.LOCATION";
 
     private final String TAG = MainActivity.class.getSimpleName();
 
     private TextView textViewLatitudeLongitude;
+
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String provider = intent.getStringExtra("provider");
+            Double lat = intent.getDoubleExtra("lat", 0.0);
+            Double lng = intent.getDoubleExtra("lng", 0.0);
+            textViewLatitudeLongitude.setText("lat: " + lat + " et long: " + lng + " et provider: " + provider);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG,"start");
         super.onStart();
         // Acquire a reference to the system Location Manager
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        /*LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // Define a listener that responds to location updates
         LocationListener locationListener = new LocationListener() {
@@ -57,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
             public void onProviderDisabled(String provider) {
             }
-        };
+        };*/
 
         // Register the listener with the Location Manager to receive location updates
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -76,11 +91,15 @@ public class MainActivity extends AppCompatActivity {
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        try {
+        /*try {
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
         } catch (SecurityException ex) {
             Log.e(TAG, ex.getMessage());
-        }
+        }*/
+        Intent intent = new Intent(this, LocationService.class);
+        startService(intent);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter(ACTION_LOCATION));
     }
 
     @Override
@@ -99,5 +118,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         Log.d(TAG,"destroy");
         super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
     }
 }
